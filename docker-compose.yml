@@ -1,11 +1,38 @@
-version: '3.1'
 services:
-  springboot:
-    image: dockerhandson/maven-web-application:VERSION
-    restart: always
+  springbootapp:
+    image: jaya462/springboot:1
+    environment:
+    - MONGO_DB_HOSTNAME=mongodb
+    - MONGO_DB_USERNAME=jayadb
+    - MONGO_DB_PASSWORD=devops@123
     ports:
-    - 9090:8080
+      - 8080:8080
     networks:
-    - mavenappbridge
+    - springappnetwork
+    deploy:
+      replicas: 2
+      placement:
+        constraints:
+        - "node.role==worker"
+      update_config:
+        parallelism: 1
+        delay: 30s
+  mongodb:
+    image: mongo
+    environment:
+    - MONGO_INITDB_ROOT_USERNAME=jayadb
+    - MONGO_INITDB_ROOT_PASSWORD=devops@123
+    volumes:
+      - mongodata:/data/db
+    networks:
+    - springappnetwork
+
+volumes:
+  mongodata:
+    driver: local
+
 networks:
-  mavenappbridge:
+  springappnetwork:
+    driver: overlay
+
+
