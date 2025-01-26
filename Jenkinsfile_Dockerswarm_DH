@@ -1,0 +1,33 @@
+node{
+    def buildNumber = BUILD_NUMBER
+    stage('SCM Checkout'){
+      git credentialsId: '1f41cc36-d7a1-4f4a-bfd9-d2772abe544d', url: 'https://github.com/sree-aug-2024/maven-web-application.git'
+    }
+    
+    stage(" Maven Clean Package"){
+      def mavenHome =  tool name: "Maven_3.9.9", type: "maven"
+      def mavenCMD = "${mavenHome}/bin/mvn"
+      sh "${mavenCMD} clean package"
+    } 
+    
+    stage('Build Docker Image'){
+      sh "docker build -t jaya462/java-web-app:${buildNumber} ."
+    }
+    
+    stage('Push Docker Image'){
+    withCredentials([string(credentialsId: 'Docker_Hub_pwd', variable: 'dockerHubpwd')]) {
+    sh "docker login -u jaya462 -p ${dockerHubPwd}"
+    }
+    sh "docker push jaya462/java-web-app:${buildNumber}"
+    }
+    
+    stage('Deploy Application in docker swarm cluster'){     
+    sshagent(['Doker_dev_server']) {
+    sh "ssh -o StrictHostKeyChecking=no ubuntu@172.31.12.11 docker service rm java-web-app-service || true"
+    sh "ssh -o StrictHostKeyChecking=no ubuntu@172.31.12.11 docker service create --name java-web-app-service -p 8080:8080 --network java-web-app-overlay --replicas 2 jaya462/java-web-app:${buildNumber}"
+    }
+       
+    }
+     
+     
+}
